@@ -1,0 +1,122 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+  playlists    Playlist[]
+  likes        Like[]
+  follows      Follow[] // artists
+  playHistory  PlayHistory[]
+
+  @@map("users")
+}
+
+model Artist {
+  id      String  @id @default(cuid())
+  name    String
+  albums  Album[]
+  tracks  Track[]
+  followers Follow[]
+
+  @@map("artists")
+}
+
+model Album {
+  id        String  @id @default(cuid())
+  title     String
+  artist    Artist  @relation(fields: [artistId], references: [id])
+  artistId  String
+  year      Int?
+  coverUrl  String?
+  tracks    Track[]
+  
+  @@map("albums")
+}
+
+model Track {
+  id           String  @id @default(cuid())
+  title        String
+  durationSec  Int
+  audioUrl     String   
+  album        Album?   @relation(fields: [albumId], references: [id])
+  albumId      String?
+  artist       Artist?  @relation(fields: [artistId], references: [id])
+  artistId     String?
+  likes        Like[]
+  playlistRefs PlaylistTrack[]
+  playHistory  PlayHistory[] 
+  createdAt    DateTime @default(now())
+
+  @@map("tracks")
+}
+
+model Playlist {
+  id        String  @id @default(cuid())
+  title     String
+  owner     User    @relation(fields: [ownerId], references: [id])
+  ownerId   String
+  isPublic  Boolean @default(true)
+  tracks    PlaylistTrack[]
+  createdAt DateTime @default(now())
+
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  id         String  @id @default(cuid())
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlistId String
+  track      Track    @relation(fields: [trackId], references: [id])
+  trackId    String
+  order      Int
+
+  @@map("playlist_track")
+}
+
+model Like {
+  id      String @id @default(cuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId String
+  @@unique([userId, trackId])
+
+  @@map("likes")
+}
+
+model Follow {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  artist   Artist @relation(fields: [artistId], references: [id])
+  artistId String
+  @@unique([userId, artistId])
+
+  @@map("follows")
+}
+
+model PlayHistory {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  track     Track    @relation(fields: [trackId], references: [id])
+  trackId   String
+  playedAt  DateTime @default(now())
+  
+  @@map("play_history")
+}
+
