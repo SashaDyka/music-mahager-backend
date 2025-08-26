@@ -1,12 +1,37 @@
 import express from 'express';
-import userRouter from './routes/user.js';
+import userRoutes from './routes/userRoutes.js';
+
+import dotenv from 'dotenv';
+import { authRoutes } from './routes/authRoutes.js';
+import { songRoutes } from './routes/songRoutes.js';
+import { playlistsRoutes } from './routes/playlistsRoutes.js';
+import { sharingRoutes } from './routes/sharingRoutes.js';
+import { mediaRoutes } from './routes/mediaRoutes.js';
+import { streamingRoutes } from './routes/streamingRoutes.js';
+import swaggerUi from 'swagger-ui-express';
+/*import swaggerDocument from './swagger.json'; */ // Потрібно створити файл 
+
+dotenv.config();
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/api', userRouter);
+// Route
+app.use('/auth', authRoutes);
+app.use('/songs', songRoutes);
+app.use('/playlists', playlistsRoutes);
+app.use('/share', sharingRoutes);
+app.use('/media', mediaRoutes);
+app.use('/stream', streamingRoutes);
+//app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
 });
+
+export default app;

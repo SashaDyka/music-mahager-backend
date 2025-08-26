@@ -1,7 +1,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 
 }
 
@@ -19,8 +18,10 @@ model User {
   createdAt    DateTime @default(now())
   playlists    Playlist[]
   likes        Like[]
-  follows      Follow[] // artists
+  follows      Follow[] 
   playHistory  PlayHistory[]
+  shareLinks       ShareLink[]
+  streamingRooms   StreamingRoom[]
 
   @@map("users")
 }
@@ -29,7 +30,7 @@ model Artist {
   id      String  @id @default(cuid())
   name    String
   albums  Album[]
-  tracks  Track[]
+  songs   Song[]
   followers Follow[]
 
   @@map("artists")
@@ -42,12 +43,12 @@ model Album {
   artistId  String
   year      Int?
   coverUrl  String?
-  tracks    Track[]
+  songs     Song[]
   
   @@map("albums")
 }
 
-model Track {
+model Song {
   id           String  @id @default(cuid())
   title        String
   durationSec  Int
@@ -57,11 +58,11 @@ model Track {
   artist       Artist?  @relation(fields: [artistId], references: [id])
   artistId     String?
   likes        Like[]
-  playlistRefs PlaylistTrack[]
+  playlistRefs PlaylistSong[]
   playHistory  PlayHistory[] 
   createdAt    DateTime @default(now())
 
-  @@map("tracks")
+  @@map("songs")
 }
 
 model Playlist {
@@ -70,30 +71,30 @@ model Playlist {
   owner     User    @relation(fields: [ownerId], references: [id])
   ownerId   String
   isPublic  Boolean @default(true)
-  tracks    PlaylistTrack[]
+  songs     PlaylistSong []
   createdAt DateTime @default(now())
 
   @@map("playlists")
 }
 
-model PlaylistTrack {
+model PlaylistSong {
   id         String  @id @default(cuid())
   playlist   Playlist @relation(fields: [playlistId], references: [id])
   playlistId String
-  track      Track    @relation(fields: [trackId], references: [id])
-  trackId    String
+  song       Song    @relation(fields: [songId], references: [id])
+  songId     String
   order      Int
 
-  @@map("playlist_track")
+  @@map("playlist_song")
 }
 
 model Like {
   id      String @id @default(cuid())
   user    User   @relation(fields: [userId], references: [id])
   userId  String
-  track   Track  @relation(fields: [trackId], references: [id])
-  trackId String
-  @@unique([userId, trackId])
+  song    Song  @relation(fields: [songId], references: [id])
+  songId String
+  @@unique([userId, songId])
 
   @@map("likes")
 }
@@ -113,10 +114,41 @@ model PlayHistory {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id])
   userId    String
-  track     Track    @relation(fields: [trackId], references: [id])
-  trackId   String
+  song      Song    @relation(fields: [songId], references: [id])
+  songId    String
   playedAt  DateTime @default(now())
   
   @@map("play_history")
+}
+
+model ShareLink {
+  id          String    @id @default(uuid())
+  targetType  ShareTargetType
+  targetId    String
+  expiresAt   DateTime?
+  revoked     Boolean   @default(false)
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+
+  @@map("share_link")
+}
+
+enum ShareTargetType {
+  Song
+  Playlist
+}
+
+model StreamingRoom {
+  id          String    @id @default(uuid())
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  status      RoomStatus @default(INACTIVE)
+
+  @@map("streaming_room")
+}
+
+enum RoomStatus {
+  INACTIVE
+  ACTIVE
 }
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import prisma from '../db.js';
+import prisma from '../prismaClient.js';
 import bcrypt from 'bcrypt'; 
 
 const router = express.Router();
