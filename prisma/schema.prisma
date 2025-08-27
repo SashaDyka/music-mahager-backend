@@ -88,6 +88,7 @@ model PlaylistSong {
   song       Song    @relation(fields: [songId], references: [id])
   songId     String
   order      Int
+  index      Int 
 
   @@map("playlist_song")
 }
