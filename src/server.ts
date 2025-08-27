@@ -1,7 +1,6 @@
 import express from 'express';
-import userRoutes from './routes/userRoutes.js';
-
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import { authRoutes } from './routes/authRoutes.js';
 import { songRoutes } from './routes/songRoutes.js';
 import { playlistsRoutes } from './routes/playlistsRoutes.js';
@@ -9,7 +8,7 @@ import { sharingRoutes } from './routes/sharingRoutes.js';
 import { mediaRoutes } from './routes/mediaRoutes.js';
 import { streamingRoutes } from './routes/streamingRoutes.js';
 import swaggerUi from 'swagger-ui-express';
-/*import swaggerDocument from './swagger.json'; */ // Потрібно створити файл 
+/*import swaggerDocument from './swagger.json'; */ // add file
 
 dotenv.config();
 
