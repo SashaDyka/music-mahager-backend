@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/rooms', requireAuth, streamingController.createRoom);
-router.get('/rooms/:roomId', streamingController.getRoomStatus);
+router.post('/stream/rooms', requireAuth, streamingController.createRoom);
+router.get('/stream/rooms/:roomId', streamingController.getRoomStatus);
 
 export { router as streamingRoutes };

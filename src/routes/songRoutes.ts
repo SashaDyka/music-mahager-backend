@@ -5,10 +5,10 @@ import type { authRoutes } from './authRoutes.js';
 
 const router = Router();
 
-router.get('/songs', requireAuth, songsController.getSongs); //дописать route ''
-router.post('/', requireAuth, songsController.createSong);
-router.get('/:id', requireAuth, songsController.getSongDetails);
-router.patch('/:id', requireAuth, songsController.updateSong);
-router.delete('/:id', requireAuth, songsController.deleteSong);
+router.get('/songs', requireAuth, songsController.getSongs); 
+router.post('/songs', requireAuth, songsController.createSong);
+router.get('/songs/:id', requireAuth, songsController.getSongDetails);
+router.patch('/songs/:id', requireAuth, songsController.updateSong);
+router.delete('/songs/:id', requireAuth, songsController.deleteSong);
 
 export { router as songRoutes };

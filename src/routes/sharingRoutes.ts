@@ -4,8 +4,8 @@ import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/', requireAuth, sharingController.createShareLink);
-router.post('/:shareId/revoke', requireAuth, sharingController.revokeShareLink);
+router.post('/share', requireAuth, sharingController.createShareLink);
+router.post('/share/:shareId/revoke', requireAuth, sharingController.revokeShareLink);
 
 router.get('/public/song/:shareId', sharingController.getPublicSong);
 router.get('/public/playlist/:shareId', sharingController.getPublicPlaylist);
