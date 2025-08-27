@@ -16,6 +16,7 @@ model User {
   passwordHash String
   displayName  String
   createdAt    DateTime @default(now())
+  songs        Song[]
   playlists    Playlist[]
   likes        Like[]
   follows      Follow[] 
@@ -52,6 +53,7 @@ model Song {
   id           String  @id @default(cuid())
   title        String
   durationSec  Int
+  sourceType   String
   audioUrl     String   
   album        Album?   @relation(fields: [albumId], references: [id])
   albumId      String?
@@ -60,6 +62,8 @@ model Song {
   likes        Like[]
   playlistRefs PlaylistSong[]
   playHistory  PlayHistory[] 
+  ownerId      String   
+  owner        User     @relation(fields: [ownerId], references: [id])
   createdAt    DateTime @default(now())
 
   @@map("songs")
