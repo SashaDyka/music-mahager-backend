@@ -3,8 +3,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getPlaylists = async (req: Request, res: Response) => {
-    const ownerId = (req as any).user.userId;
+interface AuthenticatedRequest extends Request {
+    user?: {
+        userId: string;
+    };
+}
+
+export const getPlaylists = async (req: AuthenticatedRequest, res: Response) => {
+    const ownerId = req.user?.userId;
+
+    if (!ownerId) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
 
     try {
         const playlists = await prisma.playlist.findMany({
@@ -18,32 +28,37 @@ export const getPlaylists = async (req: Request, res: Response) => {
         });
         res.status(200).json(playlists);
     } catch (error) {
+        console.error("Error fetching playlists:", error);
         res.status(500).json({ error: 'Failed to fetch playlists.' });
     }
 };
 
-
-
-export const createPlaylist = async (req: Request, res: Response) => {
+export const createPlaylist = async (req: AuthenticatedRequest, res: Response) => {
     const { title } = req.body;
-    const ownerId = (req as any).user.userId;
+    const ownerId = req.user?.userId;
+
+    if (!title || !ownerId) {
+        return res.status(400).json({ error: 'Missing title or user ID.' });
+    }
 
     try {
         const newPlaylist = await prisma.playlist.create({
-            data: { title, ownerId },
+            data: {
+                title,
+                ownerId,
+            },
         });
         res.status(201).json(newPlaylist);
     } catch (error) {
+        console.error("Error creating playlist:", error);
         res.status(500).json({ error: 'Failed to create playlist.' });
     }
 };
 
+export const getPlaylistDetails = async (req: AuthenticatedRequest, res: Response) => {
+    const playlistId = req.params.id;
 
-
-export const getPlaylistDetails = async (req: Request<{ id: string }>, res: Response) => {
-    const playlistId = parseInt(req.params.id, 10);
-
-    if (isNaN(playlistId)) {
+    if (!playlistId) {
         return res.status(400).json({ error: 'Invalid playlist ID.' });
     }
 
@@ -64,63 +79,69 @@ export const getPlaylistDetails = async (req: Request<{ id: string }>, res: Resp
 
         res.status(200).json(playlist);
     } catch (error) {
+        console.error("Error fetching playlist details:", error);
         res.status(500).json({ error: 'Failed to fetch playlist details.' });
     }
 };
 
-
-
-export const updatePlaylist = async (req: Request<{ id: string }>, res: Response) => {
-    const playlistId = parseInt(req.params.id, 10);
+export const updatePlaylist = async (req: AuthenticatedRequest, res: Response) => {
+    const playlistId = req.params.id;
     const { title } = req.body;
+    const ownerId = req.user?.userId;
 
-    if (isNaN(playlistId)) {
-        return res.status(400).json({ error: 'Invalid playlist ID.' });
+    if (!playlistId || !ownerId) {
+        return res.status(400).json({ error: 'Invalid playlist ID or owner.' });
     }
     
     try {
         const updatedPlaylist = await prisma.playlist.update({
-            where: { id: playlistId },
+            where: { id: playlistId, ownerId: ownerId },
             data: { title },
         });
         res.status(200).json(updatedPlaylist);
     } catch (error) {
+        console.error("Error updating playlist:", error);
         res.status(500).json({ error: 'Failed to update playlist.' });
     }
 };
 
+export const deletePlaylist = async (req: AuthenticatedRequest, res: Response) => {
+    const playlistId = req.params.id;
+    const ownerId = req.user?.userId;
 
-
-export const deletePlaylist = async (req: Request<{ id: string }>, res: Response) => {
-    const playlistId = parseInt(req.params.id, 10);
-
-    if (isNaN(playlistId)) {
-        return res.status(400).json({ error: 'Invalid playlist ID.' });
+    if (!playlistId || !ownerId) {
+        return res.status(400).json({ error: 'Invalid playlist ID or owner.' });
     }
     
     try {
+        const existingPlaylist = await prisma.playlist.findUnique({
+            where: { id: playlistId, ownerId: ownerId }
+        });
+        
+        if (!existingPlaylist) {
+            return res.status(404).json({ error: 'Playlist not found or you do not have permission to delete it.' });
+        }
+
         await prisma.playlistSong.deleteMany({
             where: { playlistId },
         });
-
         await prisma.playlist.delete({
             where: { id: playlistId },
         });
 
         res.status(200).json({ message: 'Playlist deleted successfully.' });
     } catch (error) {
+        console.error("Error deleting playlist:", error);
         res.status(500).json({ error: 'Failed to delete playlist.' });
     }
 };
 
-
-
-export const addSongToPlaylist = async (req: Request<{ id: string }>, res: Response) => {
-    const playlistId = parseInt(req.params.id, 10);
+export const addSongToPlaylist = async (req: AuthenticatedRequest, res: Response) => {
+    const playlistId = req.params.id;
     const { songId } = req.body;
 
-    if (isNaN(playlistId)) {
-        return res.status(400).json({ error: 'Invalid playlist ID.' });
+    if (!playlistId || !songId) {
+        return res.status(400).json({ error: 'Invalid playlist or song ID.' });
     }
 
     try {
@@ -130,22 +151,20 @@ export const addSongToPlaylist = async (req: Request<{ id: string }>, res: Respo
             data: {
                 playlistId,
                 songId,
-                index: songsCount, 
+                index: songsCount,
             },
         });
         res.status(201).json(newPlaylistSong);
     } catch (error) {
+        console.error("Error adding song to playlist:", error);
         res.status(500).json({ error: 'Failed to add song to playlist.' });
     }
 };
 
+export const removeSongFromPlaylist = async (req: AuthenticatedRequest, res: Response) => {
+    const { id: playlistId, songId } = req.params;
 
-
-export const removeSongFromPlaylist = async (req: Request<{ id: string, songId: string }>, res: Response) => {
-    const playlistId = parseInt(req.params.id, 10);
-    const songId = parseInt(req.params.songId, 10);
-
-    if (isNaN(playlistId) || isNaN(songId)) {
+    if (!playlistId || !songId) {
         return res.status(400).json({ error: 'Invalid ID provided.' });
     }
 
@@ -175,8 +194,7 @@ export const removeSongFromPlaylist = async (req: Request<{ id: string, songId: 
 
         res.status(200).json({ message: 'Song removed from playlist successfully.' });
     } catch (error) {
+        console.error("Error removing song from playlist:", error);
         res.status(500).json({ error: 'Failed to remove song from playlist.' });
     }
 };
-
-// add logic for sharing   

@@ -19,7 +19,7 @@ export const register = async (req: Request, res: Response) => {
       return res.status(409).json({ message: 'User with this email already exists.' });
     }
 
-    //  password is not hashing!
+    //  password is not hashing
     const user = await prisma.user.create({
       data: { email, password },
     });
@@ -57,7 +57,6 @@ export const logout = (req: Request, res: Response) => {
 };
 
 export const getProfile = async (req: Request, res: Response) => {
-  // @ts-ignore
   const { userId } = req.user;
   const user = await prisma.user.findUnique({
     where: { id: userId },
