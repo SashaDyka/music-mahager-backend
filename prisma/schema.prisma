@@ -16,10 +16,10 @@ model User {
   passwordHash String
   displayName  String
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
   songs        Song[]
   playlists    Playlist[]
-  likes        Like[]
-  follows      Follow[] 
   playHistory  PlayHistory[]
   shareLinks       ShareLink[]
   streamingRooms   StreamingRoom[]
@@ -27,113 +27,85 @@ model User {
   @@map("users")
 }
 
-model Artist {
-  id      String  @id @default(cuid())
-  name    String
-  albums  Album[]
-  songs   Song[]
-  followers Follow[]
-
-  @@map("artists")
+enum SourceType {
+  LOCAL
+  S3
+  EXTERNAL   
 }
 
-model Album {
-  id        String  @id @default(cuid())
-  title     String
-  artist    Artist  @relation(fields: [artistId], references: [id])
-  artistId  String
-  year      Int?
-  coverUrl  String?
-  songs     Song[]
-  
-  @@map("albums")
-}
 
 model Song {
   id           String  @id @default(cuid())
   title        String
   durationSec  Int
-  sourceType   String
+  sourceType   SourceType 
   audioUrl     String   
-  album        Album?   @relation(fields: [albumId], references: [id])
-  albumId      String?
-  artist       Artist?  @relation(fields: [artistId], references: [id])
-  artistId     String?
-  likes        Like[]
   playlistRefs PlaylistSong[]
   playHistory  PlayHistory[] 
   ownerId      String   
-  owner        User     @relation(fields: [ownerId], references: [id])
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
+  @@index([ownerId, createdAt])
   @@map("songs")
 }
 
 model Playlist {
   id        String  @id @default(cuid())
   title     String
-  owner     User    @relation(fields: [ownerId], references: [id])
+  owner     User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId   String
   isPublic  Boolean @default(true)
   songs     PlaylistSong []
   createdAt DateTime @default(now())
 
+  @@index([ownerId, createdAt])
   @@map("playlists")
 }
 
 model PlaylistSong {
   id         String  @id @default(cuid())
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   playlistId String
-  song       Song    @relation(fields: [songId], references: [id])
+  song       Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
   songId     String
-  order      Int
-  index      Int 
+  position   Int
+
+  @@unique([playlistId, songId])        
+  @@unique([playlistId, position])      
+  @@index([playlistId, position])
 
   @@map("playlist_song")
 }
 
-model Like {
-  id      String @id @default(cuid())
-  user    User   @relation(fields: [userId], references: [id])
-  userId  String
-  song    Song  @relation(fields: [songId], references: [id])
-  songId String
-  @@unique([userId, songId])
-
-  @@map("likes")
-}
-
-model Follow {
-  id       String @id @default(cuid())
-  user     User   @relation(fields: [userId], references: [id])
-  userId   String
-  artist   Artist @relation(fields: [artistId], references: [id])
-  artistId String
-  @@unique([userId, artistId])
-
-  @@map("follows")
-}
-
 model PlayHistory {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  song      Song    @relation(fields: [songId], references: [id])
+  song      Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
   songId    String
   playedAt  DateTime @default(now())
+  
+  @@index([userId, playedAt(sort: Desc)])
+  @@index([songId, playedAt(sort: Desc)])
   
   @@map("play_history")
 }
 
 model ShareLink {
   id          String    @id @default(uuid())
+  token       String          @unique @default(cuid())
   targetType  ShareTargetType
   targetId    String
   expiresAt   DateTime?
   revoked     Boolean   @default(false)
-  owner       User      @relation(fields: [ownerId], references: [id])
+  owner       User      @relation(fields: [ownerId], references: [id],  onDelete: Cascade)
   ownerId     String
+  createdAt   DateTime        @default(now())
+
+  @@index([ownerId, createdAt])
+  @@index([targetType, targetId])
+  @@index([expiresAt])
 
   @@map("share_link")
 }
@@ -143,17 +115,20 @@ enum ShareTargetType {
   Playlist
 }
 
-model StreamingRoom {
-  id          String    @id @default(uuid())
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  status      RoomStatus @default(INACTIVE)
-
-  @@map("streaming_room")
-}
-
 enum RoomStatus {
   INACTIVE
   ACTIVE
 }
 
+model StreamingRoom {
+  id          String     @id @default(uuid())
+  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  status      RoomStatus @default(INACTIVE)
+  roomCode    String?    @unique 
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([ownerId, status])
+  @@map("streaming_room")
+}
