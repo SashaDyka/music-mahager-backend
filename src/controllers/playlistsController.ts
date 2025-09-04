@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { PlaylistService } from "../services/playlistService.js";
+
 
 const prisma = new PrismaClient();
 
@@ -9,29 +11,23 @@ interface AuthenticatedRequest extends Request {
     };
 }
 
-export const getPlaylists = async (req: AuthenticatedRequest, res: Response) => {
-    const ownerId = req.user?.userId;
 
-    if (!ownerId) {
-        return res.status(401).json({ error: 'Unauthorized.' });
-    }
+const playlistService = new PlaylistService();
 
-    try {
-        const playlists = await prisma.playlist.findMany({
-            where: { ownerId },
-            include: {
-                songs: {
-                    include: { song: true },
-                    orderBy: { index: 'asc' },
-                },
-            },
-        });
-        res.status(200).json(playlists);
-    } catch (error) {
-        console.error("Error fetching playlists:", error);
-        res.status(500).json({ error: 'Failed to fetch playlists.' });
-    }
+export const getPlaylists = async (req: Request, res: Response) => {
+  try {
+    const playlists = await playlistService.getPlaylists();
+    res.json(playlists);
+  } catch (error) {
+    console.error("Error fetching playlists:", error);
+    res.status(500).json({ message: "Failed to fetch playlists" });
+  }
 };
+
+
+
+
+
 
 export const createPlaylist = async (req: AuthenticatedRequest, res: Response) => {
     const { title } = req.body;
@@ -152,6 +148,7 @@ export const addSongToPlaylist = async (req: AuthenticatedRequest, res: Response
                 playlistId,
                 songId,
                 index: songsCount,
+                order: 1,    //edit
             },
         });
         res.status(201).json(newPlaylistSong);
