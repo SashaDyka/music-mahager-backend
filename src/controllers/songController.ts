@@ -1,5 +1,8 @@
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { SongService } from "../services/songService.js";
+
 
 const prisma = new PrismaClient();
 
@@ -9,15 +12,20 @@ interface AuthenticatedRequest extends Request {
     };
 }
 
+const songService = new SongService();
+
 export const getSongs = async (req: Request, res: Response) => {
-    try {
-        const songs = await prisma.song.findMany();
-        res.status(200).json(songs);
-    } catch (error) {
-        console.error("Error fetching songs:", error);
-        res.status(500).json({ error: 'Failed to fetch songs.' });
-    }
+  try {
+    const songs = await songService.getSongs();
+    res.json(songs);
+  } catch (error) {
+    console.error("Error fetching songs:", error);
+    res.status(500).json({ message: "Failed to fetch songs." });
+  }
 };
+
+
+
 
 export const createSong = async (req: AuthenticatedRequest, res: Response) => {
     const { title, artist } = req.body;
@@ -31,8 +39,9 @@ export const createSong = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const newSong = await prisma.song.create({
             data: {
-                title,
-                artist,
+                title: "qwerty",
+                durationSec: 123,
+                sourceType: "LOCAL",
                 audioUrl: `/uploads/${audioFile.filename}`, 
                 owner: {
                     connect: { id: ownerId } 
@@ -89,7 +98,7 @@ export const updateSong = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const updatedSong = await prisma.song.update({
             where: { id: songId, ownerId: ownerId },
-            data: { title, artist, audioUrl },
+            data: { title, artist, audioUrl},
         });
         res.status(200).json(updatedSong);
     } catch (error) {
