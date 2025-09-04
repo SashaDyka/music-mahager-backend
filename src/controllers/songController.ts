@@ -1,130 +1,98 @@
-import type { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import type { Request, Response } from "express";
 import { SongService } from "../services/songService.js";
+import { SongRepository } from "../repositories/songRepository.js";
 
+const service = new SongService();
+const repo = new SongRepository();
 
-const prisma = new PrismaClient();
-
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-    };
+export async function getSongs(req: Request, res: Response) {
+  try {
+    const { playlistId } = req.query as { playlistId?: string };
+    const data = playlistId
+      ? await repo.findByPlaylist(playlistId)
+      : await repo.findAll();
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
 }
 
-const songService = new SongService();
-
-export const getSongs = async (req: Request, res: Response) => {
+export async function createSong(req: Request, res: Response) {
   try {
-    const songs = await songService.getSongs();
-    res.json(songs);
-  } catch (error) {
-    console.error("Error fetching songs:", error);
-    res.status(500).json({ message: "Failed to fetch songs." });
+    const ownerId = (req as any).user?.id; 
+    if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { title, playlistId, remoteUrl } = req.body as {
+      title?: string;
+      playlistId?: string;
+      remoteUrl?: string;
+    };
+    if (!title || !playlistId) {
+      return res
+        .status(400)
+        .json({ message: "title и playlistId обязательны" });
+    }
+
+    const tempPath = (req as any).file?.path; 
+    let id: string;
+
+    if (tempPath) {
+      id = await service.createFromFile({
+        ownerId,
+        title,
+        playlistId,
+        tempFilePath: tempPath,
+      });
+    } else if (remoteUrl) {
+      id = await service.createFromUrl({
+        ownerId,
+        title,
+        playlistId,
+        remoteUrl,
+      });
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Добавьте файл (audioFile) или remoteUrl" });
+    }
+
+    res.status(201).json({ id });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
   }
-};
+}
 
+export async function getSongDetails(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const song = await repo.findById(id);
+    if (!song) return res.status(404).json({ message: "Song not found" });
+    res.json(song);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+}
 
+export async function updateSong(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { title } = req.body as { title?: string };
 
+    if (!title) return res.status(400).json({ message: "Nothing to update" });
 
-export const createSong = async (req: AuthenticatedRequest, res: Response) => {
-    const { title, artist } = req.body;
-    const audioFile = req.file;
-    const ownerId = req.user?.userId;
+    const updated = await repo.update(id, { title } as any);
+    res.json(updated);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+}
 
-    if (!title || !audioFile || !ownerId) {
-        return res.status(400).json({ error: 'Missing required fields or file.' });
-    }
-
-    try {
-        const newSong = await prisma.song.create({
-            data: {
-                title: "qwerty",
-                durationSec: 123,
-                sourceType: "LOCAL",
-                audioUrl: `/uploads/${audioFile.filename}`, 
-                owner: {
-                    connect: { id: ownerId } 
-                }, 
-            },
-        });
-        res.status(201).json(newSong);
-    } catch (error) {
-        console.error("Error creating song:", error);
-        res.status(500).json({ error: 'Failed to create song.' });
-    }
-};
-
-export const getSongDetails = async (req: Request, res: Response) => {
-    if (!req.params.id) {
-        return res.status(400).json({ error: 'Song ID is required.' });
-    }
-    const songId = parseInt(req.params.id, 10);
-
-    if (isNaN(songId)) {
-        return res.status(400).json({ error: 'Invalid song ID.' });
-    }
-
-    try {
-        const song = await prisma.song.findUnique({
-            where: { id: songId },
-        });
-
-        if (!song) {
-            return res.status(404).json({ error: 'Song not found.' });
-        }
-        res.status(200).json(song);
-    } catch (error) {
-        console.error("Error fetching song details:", error);
-        res.status(500).json({ error: 'Failed to fetch song details.' });
-    }
-};
-
-export const updateSong = async (req: AuthenticatedRequest, res: Response) => {
-    if (!req.params.id) {
-        return res.status(400).json({ error: 'Song ID is required.' });
-    }
-    const songId = parseInt(req.params.id, 10);
-    const { title, artist } = req.body;
-    const audioFile = req.file as Express.Multer.File;
-    const ownerId = req.user?.userId;
-
-    if (isNaN(songId) || !ownerId) {
-        return res.status(400).json({ error: 'Invalid song ID or owner.' });
-    }
-    
-    const audioUrl = audioFile ? `/uploads/${audioFile.filename}` : undefined;
-
-    try {
-        const updatedSong = await prisma.song.update({
-            where: { id: songId, ownerId: ownerId },
-            data: { title, artist, audioUrl},
-        });
-        res.status(200).json(updatedSong);
-    } catch (error) {
-        console.error("Error updating song:", error);
-        res.status(500).json({ error: 'Failed to update song.' });
-    }
-};
-
-export const deleteSong = async (req: AuthenticatedRequest, res: Response) => {
-    if (!req.params.id) {
-        return res.status(400).json({ error: 'Song ID is required.' });
-    }
-    const songId = parseInt(req.params.id, 10);
-    const ownerId = req.user?.userId;
-
-    if (isNaN(songId) || !ownerId) {
-        return res.status(400).json({ error: 'Invalid song ID or owner.' });
-    }
-    
-    try {
-        await prisma.song.delete({
-            where: { id: songId, ownerId: ownerId },
-        });
-        res.status(200).json({ message: 'Song deleted successfully.' });
-    } catch (error) {
-        console.error("Error deleting song:", error);
-        res.status(500).json({ error: 'Failed to delete song.' });
-    }
-};
+export async function deleteSong(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    await repo.delete(id);
+    res.status(204).send();
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+}
