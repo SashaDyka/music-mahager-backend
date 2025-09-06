@@ -1,81 +1,32 @@
 import { PrismaClient, SourceType } from '@prisma/client';
 import { FileStorage } from './fileStorage.js';
-import fs from 'node:fs/promises';
+import { SongResponseDto } from '../dto/songDTO.js';
 
 export class SongService {
-  constructor(
-    private prisma = new PrismaClient(),
-    private storage = new FileStorage()
-  ) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
-  private async nextPosition(playlistId: string): Promise<number> {
-    const last = await this.prisma.song.findFirst({
-      where: { playlistId },
-      orderBy: { position: 'desc' },
-      select: { position: true },
-    });
-    return last ? last.position + 1 : 1;
+  async getSongs(): Promise<SongResponseDto[]> {
+    const songs = await this.prisma.song.findMany();
+    return this.mapToDto(songs);
   }
 
-  private async createSongRecord(params: {
-    ownerId: string;
-    title: string;
-    playlistId: string;
-    audioRelPath: string;
-    sourceType: SourceType;
-  }): Promise<string> {
-    const position = await this.nextPosition(params.playlistId);
-
-    const created = await this.prisma.song.create({
-      data: {
-        title: params.title,
-        durationSec: 0,
-        sourceType: params.sourceType,
-        audioUrl: params.audioRelPath,
-        ownerId: params.ownerId,
-        playlistId: params.playlistId,
-        position,
-      },
-      select: { id: true },
+  async getSongById(id: string): Promise<SongResponseDto | null> {
+    const song = await this.prisma.song.findUnique({
+      where: { id },
     });
-
-    return created.id;
-  }
-
-  async createFromFile(opts: {
-    ownerId: string;
-    title: string;
-    playlistId: string;
-    tempFilePath: string;
-  }): Promise<string> {
-    try {
-      const { relPath } = await this.storage.saveUploaded(opts.tempFilePath, '.mp3');
-      return await this.createSongRecord({
-        ownerId: opts.ownerId,
-        title: opts.title,
-        playlistId: opts.playlistId,
-        audioRelPath: relPath,
-        sourceType: SourceType.LOCAL,
-      });
-    } catch (err) {
-      try { await fs.unlink(opts.tempFilePath); } catch {}
-      throw err;
+    if (!song) {
+      return null;
     }
+    return this.mapToDto([song])[0];
   }
 
-  async createFromUrl(opts: {
-    ownerId: string;
-    title: string;
-    playlistId: string;
-    remoteUrl: string;
-  }): Promise<string> {
-    const { relPath } = await this.storage.saveFromUrl(opts.remoteUrl);
-    return this.createSongRecord({
-      ownerId: opts.ownerId,
-      title: opts.title,
-      playlistId: opts.playlistId,
-      audioRelPath: relPath,
-      sourceType: SourceType.LOCAL, 
-    });
+  private mapToDto(songs: Song[]): SongResponseDto[] {
+    return songs.map(song => ({
+      id: song.id,
+      title: song.title,
+      durationSec: song.durationSec,
+      sourceType: song.sourceType,
+      audioUrl: song.audioUrl,
+    }));
   }
 }
