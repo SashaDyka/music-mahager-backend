@@ -3,69 +3,49 @@ import jwt from 'jsonwebtoken';
 import prisma from '../prismaClient.js';
 import { z } from 'zod';
 
-const secret = process.env.JWT_SECRET as string;
+import { AuthService } from '../services/authService.js';
+import { RegisterDto, LoginDto } from '../dto/authDTO.js';
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
 
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = registerSchema.parse(req.body);
-
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({ message: 'User with this email already exists.' });
+  async register(req: Request, res: Response) {
+    try {
+      const dto = new RegisterDto(req.body.email, req.body.password, req.body.displayName);
+      const user = await this.authService.register(dto);
+      res.status(201).json(user);
+    } catch (error) {
+      res.status(400).json({ message: 'Registration failed.' });
     }
-
-    //  password is not hashing
-    const user = await prisma.user.create({
-      data: { email, password },
-    });
-
-    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true });
-
-    return res.status(201).json({ message: 'User registered successfully.' });
-  } catch (error) {
-    return res.status(400).json({ message: 'Invalid data provided.' });
   }
-};
 
-export const login = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+  async login(req: Request, res: Response) {
+    try {
+      const dto = new LoginDto(req.body.email, req.body.password);
+      const { user, token } = await this.authService.login(dto);
 
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.status(200).json({ user });
+    } catch (error: any) {
+      res.status(401).json({ message: error.message });
     }
-
-    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true });
-
-    return res.status(200).json({ message: 'Logged in successfully.' });
-  } catch (error) {
-    return res.status(500).json({ message: 'Server error.' });
-  }
-};
-
-export const logout = (req: Request, res: Response) => {
-  res.clearCookie('jwt');
-  res.status(200).json({ message: 'Logged out successfully.' });
-};
-
-export const getProfile = async (req: Request, res: Response) => {
-  const { userId } = req.user;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true },
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: 'User not found.' });
   }
 
-  return res.status(200).json(user);
-};
+  async logout(req: Request, res: Response) {
+    res.clearCookie('token');
+    res.status(200).json({ message: 'Logged out successfully' });
+  }
+
+  async getMe(req: Request, res: Response) {
+    try {
+      const { userId } = (req as any).user;
+      const user = await this.authService.getProfile(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+}
