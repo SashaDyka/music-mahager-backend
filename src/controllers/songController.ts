@@ -17,8 +17,8 @@ export class SongController {
 
   async getSongById(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const song = await this.songService.getSongById(id);
+      const { id } = req.user.id;
+      const song = await this.songService.getSongById(id); 
 
       if (!song) {
         res.status(404).json({ message: 'Song not found' });
