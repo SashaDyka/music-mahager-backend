@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "ts-node src/testData.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
     "@nestjs/config": "^4.0.2",
     "@prisma/client": "^6.14.0",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

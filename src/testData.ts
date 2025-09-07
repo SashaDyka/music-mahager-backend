@@ -1,3 +1,4 @@
+/*class for filling databases with initial data*/
 import { PrismaClient, SourceType  } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
