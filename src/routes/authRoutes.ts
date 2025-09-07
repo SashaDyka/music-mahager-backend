@@ -1,17 +1,18 @@
  import { Router } from 'express';
-import * as authController from '../controllers/authController.js';
+import { AuthController } from '../controllers/authController.js';
+import { AuthService } from '../services/authService.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { prisma } from '../prismaClient.js';
 
 
 const router = Router();
 
-router.post('/register', authController.register);
-router.post('/login ', authController.login);
-router.post('/logout', authController.logout);
-router.get('/me', authController.getProfile);
+const authService = new AuthService(prisma);
+const authController = new AuthController(authService);
 
-router.get('/me', requireAuth, (req, res) => {
-    res.json({ message: 'This is a protected route', user: 'user_info_here' });
-})
+router.post('/register', (req, res) => authController.register(req, res));
+router.post('/login', (req, res) => authController.login(req, res));
+router.post('/logout', (req, res) => authController.logout(req, res));
+router.get('/me', requireAuth, (req, res) => authController.getMe(req, res));
 
 export { router as authRoutes };
