@@ -1,76 +1,117 @@
 import type { Request, Response } from "express";
 import { SongService } from "../services/songService.js";
-import { SongRepository } from "../repositories/songRepository.js";
 
 export class SongController {
   constructor(private readonly songService: SongService) {}
 
   async getSongs(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
     try {
-      const songs = await this.songService.getSongs();
+      const songs = await this.songService.getSongs(req.user.id);
       res.status(200).json(songs);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+      res.status(500).json({ message: "Internal Server Error" });
     }
   }
 
   async getSongById(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.user.id;
-      const song = await this.songService.getSongById(id); 
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
 
+    try {
+      const { id } = req.params;
+      const song = await this.songService.getSongById(req.user.id, id);
       if (!song) {
-        res.status(404).json({ message: 'Song not found' });
+        res.status(404).json({ message: "Song not found" });
         return;
       }
       res.status(200).json(song);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+      res.status(500).json({ message: "Internal Server Error" });
     }
   }
 
   async createSong(req: Request, res: Response): Promise<void> {
-  try {
-    const { title, durationSec, sourceType } = req.body;
-    const audioUrl = req.file?.path; // uploadAudio middleware
-
-    if (!audioUrl) {
-      res.status(400).json({ message: 'Audio file required' });
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    const song = await this.songService.createSong(req.user.id, {
-      title,
-      durationSec: Number(durationSec),
-      sourceType,
-      audioUrl
-    });
+    try {
+      const { title, durationSec, sourceType } = req.body;
+      const audioUrl = req.file?.path;
 
-    res.status(201).json(song);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+      if (!audioUrl) {
+        res.status(400).json({ message: "Audio file required" });
+        return;
+      }
+
+      const song = await this.songService.createSong(req.user.id, {
+        title,
+        durationSec: Number(durationSec),
+        sourceType,
+        audioUrl,
+      });
+
+      res.status(201).json(song);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-}
 
-async updateSong(req: Request, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
-    const updated = await this.songService.updateSong(req.user.id, id, req.body);
-
-    if (updated.count === 0) {
-      res.status(404).json({ message: 'Song not found or no access' });
+  async updateSong(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    res.status(200).json({ message: 'Song updated' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    try {
+      const { id } = req.params;
+      const updated = await this.songService.updateSong(req.user.id, id, req.body);
+
+      if (updated.count === 0) {
+        res.status(404).json({ message: "Song not found or no access" });
+        return;
+      }
+
+      res.status(200).json({ message: "Song updated" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
+
+  
+   async deleteSong(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const { id } = req.params;
+      const deleted = await this.songService.deleteSong(req.user.id, id);
+
+      if (deleted.count === 0) {
+        res.status(404).json({ message: "Song not found or no access" });
+        return;
+      }
+
+      res.status(200).json({ message: "Song deleted" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
 }
 
-
-}
