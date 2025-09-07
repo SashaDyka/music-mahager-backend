@@ -53,14 +53,12 @@ export class SongController {
         res.status(400).json({ message: "Audio file required" });
         return;
       }
-      
-      const audioUrl = `/media/file/${fileId}`;
 
       const song = await this.songService.createSong(req.user.userId, {
         title,
         durationSec: Number(durationSec),
         sourceType,
-        audioUrl,
+        fileId,
       });
 
       res.status(201).json(song);

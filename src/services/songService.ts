@@ -24,12 +24,14 @@ export class SongService {
 
   async createSong(
     userId: string,
-    data: { title: string; durationSec: number; sourceType: string; audioUrl: string }
-  ): Promise<SongResponseDto> {
-    const song = await this.prisma.song.create({
+    data: { title: string; durationSec: number; sourceType: string; fileId: string } ): Promise<SongResponseDto> {
+   
+      const audioUrl = `/media/file/${data.fileId}`;
+       
+      const song = await this.prisma.song.create({
       data: { title: data.title,
         durationSec: data.durationSec,
-        audioUrl: data.audioUrl,
+        audioUrl,
         sourceType: data.sourceType as SourceType,
         ownerId: userId,
       },
