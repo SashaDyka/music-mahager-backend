@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, SourceType } from '@prisma/client';
 import { SongResponseDto } from '../dto/songDTO.js';
 import type { Song } from "@prisma/client";
 
@@ -27,7 +27,12 @@ export class SongService {
     data: { title: string; durationSec: number; sourceType: string; audioUrl: string }
   ): Promise<SongResponseDto> {
     const song = await this.prisma.song.create({
-      data: { ...data, ownerId: userId },
+      data: { title: data.title,
+        durationSec: data.durationSec,
+        audioUrl: data.audioUrl,
+        sourceType: data.sourceType as SourceType,
+        ownerId: userId,
+      },
     });
     return new SongResponseDto(song);
   }
@@ -35,11 +40,30 @@ export class SongService {
   async updateSong(
     userId: string,
     id: string,
-    data: Partial<{ title: string; durationSec: number; sourceType: string; audioUrl: string }>
+    data: {
+      title?: string;
+      durationSec?: number;
+      sourceType?: SourceType; 
+      audioUrl?: string;
+    }
   ): Promise<{ count: number }> {
+    const updateData: {
+      title?: string;
+      durationSec?: number;
+      sourceType?: SourceType;
+      audioUrl?: string;
+    } = {};
+
+    if (data.title) updateData.title = data.title;
+    if (data.durationSec) updateData.durationSec = data.durationSec;
+    if (data.audioUrl) updateData.audioUrl = data.audioUrl;
+    if (data.sourceType) {
+      updateData.sourceType = data.sourceType as SourceType;
+    }
+
     const result = await this.prisma.song.updateMany({
       where: { id, ownerId: userId },
-      data,
+      data: updateData,
     });
     return result;
   }
