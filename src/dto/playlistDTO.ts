@@ -1,13 +1,27 @@
 import { SongResponseDto } from "./songDTO.js";
 
-export class PlaylistResponseDto {
-  id: number;
-  name: string;
-  songs: SongResponseDto[];
+export class CreatePlaylistDto {
+  constructor(public readonly title: string) {}
+}
 
-  constructor(playlist: any) {
-    this.id = playlist.id;
-    this.name = playlist.name;
-    this.songs = playlist.songs?.map((s: any) => new SongResponseDto(s)) || [];
-  }
+export class PlaylistDto {
+  constructor(
+    public readonly id: string,
+    public readonly title: string,
+    public readonly isPublic: boolean,
+    public readonly songCount: number
+  ) {}
+}
+
+export class PlaylistWithSongsDto {
+  constructor(
+    public readonly id: string,
+    public readonly title: string,
+    public readonly isPublic: boolean,
+    public readonly songs: { position: number; song: SongResponseDto }[]
+  ) {}
+}
+
+export class AddSongToPlaylistDto {
+  constructor(public readonly songId: string) {}
 }
