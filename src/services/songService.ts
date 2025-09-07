@@ -1,5 +1,7 @@
-import { PrismaClient, SourceType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { SongResponseDto } from '../dto/songDTO.js';
+import type { Song } from "@prisma/client";
+
 
 export class SongService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -17,18 +19,11 @@ export class SongService {
       where: { id, ownerId: userId },
     });
     if (!song) return null;
-    return this.mapToDto([song])[0];
+    return new SongResponseDto(song);
   }
 
 
-
   private mapToDto(songs: Song[]): SongResponseDto[] {
-    return songs.map(song => ({
-      id: song.id,
-      title: song.title,
-      durationSec: song.durationSec,
-      sourceType: song.sourceType,
-      audioUrl: song.audioUrl,
-    }));
+    return songs.map(song => new SongResponseDto(song));
   }
 }
