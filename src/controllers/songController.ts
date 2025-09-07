@@ -30,4 +30,30 @@ export class SongController {
       res.status(500).json({ message: 'Internal Server Error' });
     }
   }
+
+  async createSong(req: Request, res: Response): Promise<void> {
+  try {
+    const { title, durationSec, sourceType } = req.body;
+    const audioUrl = req.file?.path; // uploadAudio middleware
+
+    if (!audioUrl) {
+      res.status(400).json({ message: 'Audio file required' });
+      return;
+    }
+
+    const song = await this.songService.createSong(req.user.id, {
+      title,
+      durationSec: Number(durationSec),
+      sourceType,
+      audioUrl
+    });
+
+    res.status(201).json(song);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+}
+
+
 }
