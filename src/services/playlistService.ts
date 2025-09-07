@@ -40,7 +40,7 @@ export class PlaylistService {
     }));
   }
 
-  async getPlaylistById(id: string): Promise<PlaylistWithSongsDto | null> {
+   async getPlaylistById(id: string): Promise<PlaylistWithSongsDto | null> {
     const playlist = await this.prisma.playlist.findUnique({
       where: { id },
       include: {
@@ -79,7 +79,7 @@ export class PlaylistService {
     });
   }
 
-  async addSongToPlaylist(playlistId: string, songId: string) {
+  async addSongToPlaylist(userId: string, playlistId: string, songId: string, position: number) {
     const playlist = await this.prisma.playlist.findUnique({
       where: { id: playlistId },
       include: { songs: true },
