@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { SongService } from "../services/songService.js";
 
+
 export class SongController {
   constructor(private readonly songService: SongService) {}
 
@@ -11,7 +12,7 @@ export class SongController {
     }
 
     try {
-      const songs = await this.songService.getSongs(req.user.id);
+      const songs = await this.songService.getSongs(req.user.userId);
       res.status(200).json(songs);
     } catch (error) {
       console.error(error);
@@ -24,10 +25,9 @@ export class SongController {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
-
     try {
       const { id } = req.params;
-      const song = await this.songService.getSongById(req.user.id, id);
+      const song = await this.songService.getSongById(req.user.userId, id);
       if (!song) {
         res.status(404).json({ message: "Song not found" });
         return;
@@ -54,7 +54,7 @@ export class SongController {
         return;
       }
 
-      const song = await this.songService.createSong(req.user.id, {
+      const song = await this.songService.createSong(req.user.userId, {
         title,
         durationSec: Number(durationSec),
         sourceType,
@@ -76,7 +76,7 @@ export class SongController {
 
     try {
       const { id } = req.params;
-      const updated = await this.songService.updateSong(req.user.id, id, req.body);
+      const updated = await this.songService.updateSong(req.user.userId, id, req.body);
 
       if (updated.count === 0) {
         res.status(404).json({ message: "Song not found or no access" });
@@ -99,7 +99,7 @@ export class SongController {
 
     try {
       const { id } = req.params;
-      const deleted = await this.songService.deleteSong(req.user.id, id);
+      const deleted = await this.songService.deleteSong(req.user.userId, id);
 
       if (deleted.count === 0) {
         res.status(404).json({ message: "Song not found or no access" });
