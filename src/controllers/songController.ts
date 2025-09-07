@@ -47,12 +47,14 @@ export class SongController {
 
     try {
       const { title, durationSec, sourceType } = req.body;
-      const audioUrl = req.file?.path;
+      const fileId = req.file?.filename; 
 
-      if (!audioUrl) {
+      if (!fileId) {
         res.status(400).json({ message: "Audio file required" });
         return;
       }
+      
+      const audioUrl = `/media/file/${fileId}`;
 
       const song = await this.songService.createSong(req.user.userId, {
         title,
