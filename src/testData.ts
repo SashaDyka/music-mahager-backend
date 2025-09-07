@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma  } from '@prisma/client';
+import { PrismaClient, SourceType  } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
 
