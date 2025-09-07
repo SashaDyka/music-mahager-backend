@@ -20,10 +20,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); 
 
-
-console.log(`Serving static files from: ${path.join(__dirname, '..', 'uploads')}`);
-
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/songs', songRoutes);
