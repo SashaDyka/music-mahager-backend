@@ -44,6 +44,13 @@ export class SongService {
     return result;
   }
 
+  async deleteSong(userId: string, id: string): Promise<{ count: number }> {
+    const result = await this.prisma.song.deleteMany({
+      where: { id, ownerId: userId },
+    });
+    return result;
+  }
+
   private mapToDto(songs: Song[]): SongResponseDto[] {
     return songs.map(song => new SongResponseDto(song));
   }
