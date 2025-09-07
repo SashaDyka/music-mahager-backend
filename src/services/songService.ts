@@ -22,6 +22,27 @@ export class SongService {
     return new SongResponseDto(song);
   }
 
+  async createSong(
+    userId: string,
+    data: { title: string; durationSec: number; sourceType: string; audioUrl: string }
+  ): Promise<SongResponseDto> {
+    const song = await this.prisma.song.create({
+      data: { ...data, ownerId: userId },
+    });
+    return new SongResponseDto(song);
+  }
+
+  async updateSong(
+    userId: string,
+    id: string,
+    data: Partial<{ title: string; durationSec: number; sourceType: string; audioUrl: string }>
+  ): Promise<{ count: number }> {
+    const result = await this.prisma.song.updateMany({
+      where: { id, ownerId: userId },
+      data,
+    });
+    return result;
+  }
 
   private mapToDto(songs: Song[]): SongResponseDto[] {
     return songs.map(song => new SongResponseDto(song));
