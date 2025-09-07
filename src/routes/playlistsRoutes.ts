@@ -1,15 +1,22 @@
 import { Router } from 'express';
-import * as playlistsController from '../controllers/playlistsController.js';
+import { PlaylistsController } from '../controllers/playlistsController.js';
+import { PlaylistService } from '../services/playlistService.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { prisma } from '../prismaClient.js';
+
 
 const router = Router();
+const playlistsService = new PlaylistService(prisma);
+const playlistsController = new PlaylistsController(playlistsService);
 
-router.get('/', requireAuth, playlistsController.getPlaylists);
-router.post('/', requireAuth, playlistsController.createPlaylist);
-router.get('/:id', requireAuth, playlistsController.getPlaylistDetails);
-router.patch('/:id', requireAuth, playlistsController.updatePlaylist);
-router.delete('/:id', requireAuth, playlistsController.deletePlaylist);
-router.post('/:id/songs', requireAuth, playlistsController.addSongToPlaylist);
-router.delete('/:id/songs/:songId', requireAuth, playlistsController.removeSongFromPlaylist);
+
+router.get('/', requireAuth, (req, res) => playlistsController.getPlaylists(req, res));
+router.post('/', requireAuth, (req, res) => playlistsController.createPlaylist(req, res));
+router.get('/:id', requireAuth, (req, res) => playlistsController.getPlaylistDetails(req, res));
+router.patch('/:id', requireAuth, (req, res) => playlistsController.updatePlaylist(req, res));
+router.delete('/:id', requireAuth, (req, res) => playlistsController.deletePlaylist(req, res));
+router.post('/:id/songs', requireAuth, (req, res) => playlistsController.addSongToPlaylist(req, res));
+router.delete('/:id/songs/:songId', requireAuth, (req, res) => playlistsController.removeSongFromPlaylist(req, res));
+
 
 export { router as playlistsRoutes };
